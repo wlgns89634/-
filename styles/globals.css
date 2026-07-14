@@ -2,6 +2,9 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* css 추가할시 아래소스처럼 import 해주세요. 안하면 css 적용안됩니다. */
+@import "./test.css";
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

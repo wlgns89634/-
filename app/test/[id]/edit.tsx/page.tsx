@@ -1,48 +1,54 @@
-// app/institutions/[id]/edit/page.tsx
 "use client";
 
-import { use } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
-import {
-  getInstitutionDetail, // 상세조회 API 임포트
-  updateInstitution, // 수정 API 임포트
-} from "@/apis/test/apiTest";
-import { UserPost, UserDetail } from "@/types/test/list";
+import { getInstitutionDetail, updateInstitution } from "@/apis/test/apiTest";
+import { UserPost } from "@/types/test/list";
 import FieldForm from "@/components/FieldForm/FieldForm";
 import { userFieldConfig } from "@/fields/formField";
+import { useLoadingStore } from "@/store/Loading";
 
-interface EditPageProps {
-  params: Promise<{ id: string }>;
-}
-
-export default function EditPage({ params }: EditPageProps) {
-  const { id } = use(params);
+export default function EditPage() {
+  const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const startLoading = useLoadingStore((state) => state.startLoading);
+  const endLoading = useLoadingStore((state) => state.endLoading);
 
-  // ── 1. [상세 조회] getInstitutionDetail 함수 매핑 ──
   const { data: institutionDetail, isLoading } = useQuery({
     queryKey: ["institution", id],
-    queryFn: () => getInstitutionDetail(id), // 올바른 단일 상세조회 함수 호출
+    queryFn: () => getInstitutionDetail(id),
     enabled: !!id,
   });
 
-  // ── 2. [수정 처리] updateInstitution 함수 매핑 ──
   const { mutateAsync } = useMutation({
-    mutationFn: (data: UserPost) => updateInstitution(id, data), // 올바른 수정 API 호출
+    mutationFn: (data: UserPost) => updateInstitution(id, data),
+    // 등록중 로딩
+    onMutate: () => {
+      startLoading("정보를 수정하는 중입니다...");
+    },
+
+    // 등록 성공
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["institutions"] });
       router.push("/institutions");
     },
+
+    // 등록 실패
+    onError: (error) => {
+      alert("수정 중 오류가 발생했습니다.");
+    },
+
+    // 성공하든 실패하든 처리가 끝나면(Settled) 무조건 로딩 종료
+    onSettled: () => {
+      endLoading();
+    },
   });
 
   const handleSubmit = async (data: Record<string, unknown>) => {
-    // 공통 폼에서 올라온 가공되지 않은 데이터를 DTO(UserPost) 타입으로 변환해 Mutation 실행
     await mutateAsync(data as UserPost);
   };
 
-  // ── 3. 예외 처리 로직 (동작 보완) ──
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
@@ -53,7 +59,6 @@ export default function EditPage({ params }: EditPageProps) {
     );
   }
 
-  // existingRow 변수가 기존에 잘못 체크되고 있었으므로, 가져온 institutionDetail이 없을 때 오류 화면 노출
   if (!institutionDetail) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
@@ -69,7 +74,7 @@ export default function EditPage({ params }: EditPageProps) {
       <FieldForm
         fields={userFieldConfig}
         onSubmit={handleSubmit}
-        defaultValues={institutionDetail} //  상세 데이터가 폼 필드에 깔끔하게 파싱되어 바인딩됩니다.
+        defaultValues={institutionDetail}
         type="page"
       />
     </div>

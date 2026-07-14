@@ -1,95 +1,103 @@
 "use client";
 
-import React from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
-import Detail from "@/components/Detail/Detail";
-import Skeleton from "@/components/Skelton/Skeleton";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import DetailView from "@/components/Detail/Detail";
+import { userDetailFields } from "@/fields/detailField";
+import { userFieldConfig } from "@/fields/formField";
+import { getInstitutionDetail, deleteInstitution } from "@/apis/test/apiTest";
 import { useModalStore } from "@/store/Modal";
+import FieldForm from "@/components/FieldForm/FieldForm";
+import { useLoadingStore } from "@/store/Loading";
 
-// 💡 백엔드 API 대신 테스트용으로 뿌려줄 임시 상세 데이터 (DTO 규격 매칭)
-const MOCK_INSTITUTION_DETAIL = (id: string) => ({
-  id: id || "999",
-  name: "부산 정보기술 진흥원 (임시)",
-  email: "busan_it@contact.or.kr",
-  gender: "남성", // (기존 데이터 호환용 필드)
-  interests: "개발, 디자인, 기획",
-  description:
-    "Next.js App Router와 React Query 연동 및 전역 모달 시스템 검증을 위해 프론트엔드단에서 임시로 생성한 가데이터입니다. 실제 백엔드가 붙으면 이 내용은 서버 데이터로 대체됩니다.",
-  createdAt: "2026-07-13",
-});
-
-export default function DetailPage() {
+export default function UserDetailPage() {
+  const { id } = useParams<{ id: string }>(); // 리스트페이지 [id] 값 가져옴
   const router = useRouter();
-  const params = useParams();
+  const queryClient = useQueryClient();
   const open = useModalStore((state) => state.open);
-  const id = params?.id as string;
+  const startLoading = useLoadingStore((state) => state.startLoading);
+  const endLoading = useLoadingStore((state) => state.endLoading);
 
-  const {
-    data: institution,
-    isLoading,
-    isError,
-  } = useQuery({
-    queryKey: ["Detail", id],
-
-    // ⭕ [수정] 실제 API 대신 0.3초 뒤에 가데이터를 뱉어내도록 임시 처리
-    queryFn: async () => {
-      await new Promise((resolve) => setTimeout(resolve, 300)); // 300ms 로딩 효과
-      return MOCK_INSTITUTION_DETAIL(id);
-    },
+  // 상세 데이터 조회
+  const { data, isLoading } = useQuery({
+    queryKey: ["users", "detail", id],
+    queryFn: () => getInstitutionDetail(id),
     enabled: !!id,
   });
 
-  const handleDelete = () => {
+  //  삭제 mutation
+  const deleteMutation = useMutation({
+    mutationFn: deleteInstitution,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      router.push("/users"); // 삭제 성공하면 목록으로 이동
+    },
+    onError: () => {
+      open({
+        type: "alert",
+        title: "오류",
+        description: "삭제에 실패했습니다.",
+      });
+    },
+  });
+
+  // 수정 버튼 클릭 핸들러 (수정 폼 모달 열기)
+  const handleEdit = (rowData: typeof data) => {
+    if (!rowData) return;
     open({
-      type: "alert",
+      type: "content",
+      title: "회원 수정",
+      content: (
+        <FieldForm
+          fields={userFieldConfig}
+          defaultValues={rowData}
+          onSubmit={async (formData) => {
+            open({
+              type: "confirm",
+              title: "수정하시겠습니까?",
+              onConfirm: async () => {
+                // updateInstitution 같은 실제 수정 API 호출
+                queryClient.invalidateQueries({
+                  queryKey: ["users", "detail", id],
+                });
+              },
+            });
+          }}
+        />
+      ),
+    });
+  };
+
+  // 삭제 버튼 클릭 핸들러 (confirm 모달)
+  const handleDelete = (targetId: string) => {
+    open({
+      type: "confirm",
       title: "정말 삭제하시겠습니까?",
+      description: "삭제하면 되돌릴 수 없습니다.",
       onConfirm: async () => {
-        // await deleteMutation.mutateAsync(id); // api 앤드포인트 보내는곳
-        console.log(`${id}번 아이템 삭제 처리됨`);
+        try {
+          startLoading("기관을 삭제하는 중입니다..."); // 로딩 켜기
+          await deleteMutation.mutateAsync(targetId);
+        } catch (error) {
+          console.error(error);
+        } finally {
+          endLoading(); // 로딩 끄기
+        }
       },
     });
   };
 
+  if (isLoading) return <p>불러오는 중...</p>;
+  if (!data) return <p>데이터를 찾을 수 없습니다.</p>;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-start bg-zinc-50 dark:bg-black p-8 min-h-screen">
-      {/* 케이스 1: 로딩 중일 때 (Skeleton UI) */}
-      {isLoading && (
-        <div className="w-full max-w-2xl bg-white dark:bg-zinc-900 p-8 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-6">
-          <Skeleton className="h-8 w-1/3 bg-zinc-200 dark:bg-zinc-800" />
-          <hr className="border-zinc-100 dark:border-zinc-800" />
-          <div className="space-y-4">
-            <Skeleton className="h-5 w-full bg-zinc-200 dark:bg-zinc-800" />
-            <Skeleton className="h-5 w-3/4 bg-zinc-200 dark:bg-zinc-800" />
-            <Skeleton className="h-24 w-full bg-zinc-200 dark:bg-zinc-800" />
-          </div>
-        </div>
-      )}
-
-      {/* 케이스 2: 에러가 발생했거나 데이터가 없을 때 */}
-      {(isError || (!isLoading && !institution)) && (
-        <div className="w-full max-w-2xl bg-white dark:bg-zinc-900 p-12 rounded-xl border border-zinc-200 dark:border-zinc-800 text-center space-y-4">
-          <p className="text-red-500 font-semibold">
-            ⚠️ 존재하지 않거나 정보를 불러올 수 없는 기관입니다.
-          </p>
-          <button
-            onClick={() => router.push("/institutions")}
-            className="text-sm text-zinc-500 hover:text-zinc-700 underline transition"
-          >
-            목록으로 돌아가기
-          </button>
-        </div>
-      )}
-
-      {/* 케이스 3: 데이터 Fetch 성공 시 (공통 상세 컴포넌트 출력) */}
-      {institution && !isLoading && !isError && (
-        <Detail
-          data={institution}
-          onBackClick={() => router.push("/institutions")}
-          onEditClick={() => router.push(`/institutions/${id}/edit`)}
-          onDeleteClick={handleDelete}
-        />
-      )}
-    </div>
+    <DetailView
+      title={data.name}
+      data={data}
+      fields={userDetailFields}
+      onBackClick={() => router.back()}
+      onEditClick={() => handleEdit(data)}
+      onDeleteClick={() => handleDelete(String(data.id))}
+    />
   );
 }

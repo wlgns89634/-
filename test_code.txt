@@ -1,0 +1,79 @@
+{/*api 데이터 불러올시 스켈레톤 ui처리해야하며 width, height 설정해주세요 설정안하면 안나타납니다.*/}
+
+
+<Skeleton className="w-20 h-4" />
+
+
+
+------ 테이블 형식에 list 조회할때(api get 할때) ------
+const columns = useMemo<ColumnDef<UserRowData>[]>(
+    () => [
+      { accessorKey: "id", header: "번호" },
+      { accessorKey: "name", header: "이름" },
+      { accessorKey: "email", header: "이메일" },
+      { accessorKey: "gender", header: "성별" },
+      { accessorKey: "interests", header: "관심 분야" },
+    ],
+    [],
+  );
+ <DataTable
+        queryKey="test"
+        data={mockUserApi}
+        columns={columns}
+        filters={dynamicFilters}
+        onRowClick={(data) => listDetail(data.id)}
+      />
+
+
+
+
+-----------모달 예시---------
+1. 성공
+const handleDeleteClick = (id: string) => {
+  open({
+    type: "alert",
+    imageUrl: "/images/success-check.png", 
+    title: "등록 완료",
+    description: "회원이 성공적으로 등록되었습니다.",
+  });
+};
+
+
+2. 삭제
+const handleDeleteClick = (id: string) => {
+  open({
+    type: "confirm",
+    imgUrl:"/images/success.png",
+    title: "삭제하시겠습니까?",
+    description: "삭제하면 되돌릴 수 없습니다.",
+    onConfirm: async () => {
+      await deleteMutation.mutateAsync(id);
+    },
+  });
+};
+
+3. 수정 (수정 폼 → confirm → 실제 API)
+const handleEditClick = (row: InstitutionRow) => {
+  open({
+    type: "content",
+    title: "기관 수정",
+    content: (
+      <FieldForm
+        fields={institutionFieldConfig}
+        defaultValues={row}
+        onSubmit={async (data) => {
+          open({
+            type: "confirm",
+            title: "수정하시겠습니까?",
+            description: "변경사항을 저장합니다.",
+            onConfirm: async () => {
+              await updateMutation.mutateAsync({ id: row.id, data });
+            },
+          });
+        }}
+      />
+    ),
+  });
+};
+
+

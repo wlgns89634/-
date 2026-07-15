@@ -4,7 +4,7 @@ import {
   updateApi,
   deleteApi,
   createTableApi,
-} from "../crud";
+} from "@/apis/crud";
 import { API_ENDPOINTS } from "@/apis/endpoints"; // api 앤드포인트 호출
 import { UserPost, UserDetail } from "@/types/test/list"; // api dto 매핑 후 호출
 
@@ -14,12 +14,12 @@ export const getInstitutionDetail = getDetailApi<UserDetail>(
 );
 
 // 2. 등록용 (createApi 사용)
-export const createInstitution = createApi<UserPost, UserDetail>(
+export const createInstitution = createApi<UserDetail, UserPost>(
   API_ENDPOINTS.institutions,
 );
 
 // 3. 수정용 (updateApi 추가 정의!)
-export const updateInstitution = updateApi<UserPost, UserDetail>(
+export const updateInstitution = updateApi<UserDetail, UserPost>(
   API_ENDPOINTS.institutions,
 );
 

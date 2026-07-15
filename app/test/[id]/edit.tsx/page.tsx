@@ -3,6 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getInstitutionDetail, updateInstitution } from "@/apis/test/apiTest";
+import { useCallback, useEffect, useState } from "react";
 import { UserPost } from "@/types/test/list";
 import FieldForm from "@/components/FieldForm/FieldForm";
 import { userFieldConfig } from "@/fields/formField";
@@ -14,6 +15,7 @@ export default function EditPage() {
   const queryClient = useQueryClient();
   const startLoading = useLoadingStore((state) => state.startLoading);
   const endLoading = useLoadingStore((state) => state.endLoading);
+  const [value, setValue] = useState<UserPost>();
 
   const { data: institutionDetail, isLoading } = useQuery({
     queryKey: ["institution", id],
@@ -23,6 +25,7 @@ export default function EditPage() {
 
   const { mutateAsync } = useMutation({
     mutationFn: (data: UserPost) => updateInstitution(id, data),
+
     // 등록중 로딩
     onMutate: () => {
       startLoading("정보를 수정하는 중입니다...");
@@ -44,6 +47,11 @@ export default function EditPage() {
       endLoading();
     },
   });
+
+  // 실시간 입력된값 받아옴
+  const handleFormChange = useCallback((values: Record<string, unknown>) => {
+    console.log("실시간 값:", values);
+  }, []);
 
   const handleSubmit = async (data: Record<string, unknown>) => {
     await mutateAsync(data as UserPost);
@@ -76,6 +84,7 @@ export default function EditPage() {
         onSubmit={handleSubmit}
         defaultValues={institutionDetail}
         type="page"
+        onChange={handleFormChange}
       />
     </div>
   );

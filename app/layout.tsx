@@ -4,8 +4,8 @@ import { cn } from "@/lib/utils";
 import Providers from "./provider";
 import ModalRenderer from "@/components/Modals/Modals";
 import RegisterSW from "./register-sw";
-import Header from "@/components/layouts/Header";
-import Footer from "@/components/layouts/Footer";
+import Header from "@/components/Layouts/Header";
+import Footer from "@/components/Layouts/Footer";
 
 export const metadata: Metadata = {
   title: "Create Next App",

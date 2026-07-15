@@ -13,6 +13,7 @@ import { createTableApi, createApi } from "@/apis/crud";
 import { UserRowData } from "@/types/test/list";
 import { userFieldConfig } from "@/fields/formField";
 import Loading from "@/components/Loading/Loading";
+import { Suspense } from "react";
 
 // 실제 화면에 뿌려줄 순수 가데이터 배열
 const LOCAL_MOCK_USERS: UserRowData[] = [
@@ -141,19 +142,19 @@ export default function ListPage() {
   const handleAddClick = () => {
     open({
       type: "content",
-
       title: "회원 등록",
       content: (
         <FieldForm
           fields={userFieldConfig}
           onSubmit={async (data) => {
-            // 검증 통과한 데이터를 그대로 confirm 모달로 넘김
+            // 검증 통과한 데이터를 그대로 submit 모달로 넘김
             open({
               type: "confirm",
               title: "등록하시겠습니까?",
               description: "입력하신 정보로 회원을 등록합니다.",
               onConfirm: async () => {
                 await createMutation.mutateAsync(data); // 여기서 실제 API 호출
+                close();
                 // onConfirm 성공하면 ConfirmModalContent가 자동으로 close() 호출함
               },
             });
@@ -171,13 +172,14 @@ export default function ListPage() {
       </div>
 
       <Loading />
-
-      <DataTable
-        queryKey="test"
-        data={mockUserApi}
-        columns={columns}
-        onRowClick={(data) => listDetail(data.id)}
-      />
+      <Suspense fallback={null}>
+        <DataTable
+          queryKey="test" // 위에 리스트 추가 함수(api post) 와 키값 맞추기
+          data={mockUserApi} // api 데이터
+          columns={columns} // th 헤더
+          onRowClick={(data) => listDetail(data.id)} // 상세페이지 넘김 위에함수 참고
+        />
+      </Suspense>
     </div>
   );
 }

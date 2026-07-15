@@ -1,15 +1,13 @@
 // components/dynamic-form.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm, Controller, Control } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FormFieldConfig } from "@/types/form";
 import { buildSchema } from "@/utils/build_schema";
 import { useFormValidationAlert } from "@/hooks/validation";
 import { X, Paperclip, FileText } from "lucide-react";
-
-import { useEffect } from "react";
 
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,6 +29,7 @@ interface FieldFormProps {
   onSubmit: (data: Record<string, unknown>) => Promise<void>;
   submitLabel?: string;
   className?: string;
+  onChange?: (data: Record<string, unknown>) => void; // ✅ 함수 타입으로 수정
   defaultValues?: Record<string, unknown>;
   validType?: "inline" | "modal";
 }
@@ -40,12 +39,12 @@ export default function Form({
   fields,
   onSubmit,
   submitLabel = "제출",
+  onChange, // ✅ destructuring에 추가
   defaultValues,
   validType = "inline",
 }: FieldFormProps) {
   const schema = buildSchema(fields);
 
-  // fields 배열을 기반으로 각 타입에 맞는 '안전한 초기값'을 동적으로 생성하는 함수
   const generateDefaultValues = (fieldConfigs: FormFieldConfig[]) => {
     const defaults: Record<string, unknown> = {};
 
@@ -72,11 +71,22 @@ export default function Form({
     register,
     handleSubmit,
     control,
+    watch,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(schema),
     defaultValues: generateDefaultValues(fields),
   });
+
+  useEffect(() => {
+    if (!onChange) return;
+
+    const subscription = watch((values) => {
+      onChange(values as Record<string, unknown>);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [watch, onChange]);
 
   const { handleInvalid, handleSubmitError } = useFormValidationAlert();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -91,7 +101,6 @@ export default function Form({
   };
 
   const handleErrors = (formErrors: any) => {
-    // 모달 모드일 때만 전역 알럿 팝업을 오픈합니다.
     if (validType === "modal") {
       handleInvalid(fields, formErrors);
     }
@@ -377,7 +386,6 @@ const renderField = (
   }
 };
 
-// 첨부파일 썸네일 함수
 const FilePreviewItem = ({
   file,
   onRemove,
@@ -394,7 +402,6 @@ const FilePreviewItem = ({
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
 
-    // 메모리 누수 방지 — 컴포넌트 사라지거나 파일 바뀌면 미리보기 URL 해제
     return () => URL.revokeObjectURL(url);
   }, [file, isImage]);
 

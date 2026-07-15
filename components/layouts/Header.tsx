@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { MenuItem } from "@/types/Navigation";
+import { MenuItem } from "@/types/navigation";
 
 const MOCK_MENU_ITEMS: MenuItem[] = [
   {

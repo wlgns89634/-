@@ -28,7 +28,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TableFilterConfig } from "@/types/form";
-import Skeleton from "../Skelton/Skeleton";
+import Skeleton from "@/components/Skelton/Skeleton";
+import { useSuspenseQuery } from "@tanstack/react-query";
 
 export interface FetchTableDataParams {
   page: number;
@@ -38,6 +39,8 @@ export interface FetchTableDataParams {
 }
 
 interface DataTableProps<TData> {
+  title?: string;
+  description?: string;
   columns: ColumnDef<TData>[];
   data: (
     params: FetchTableDataParams,
@@ -48,6 +51,8 @@ interface DataTableProps<TData> {
 }
 
 export default function DataTable<TData>({
+  title,
+  description,
   data,
   columns,
   filters = [],
@@ -136,7 +141,10 @@ export default function DataTable<TData>({
     <div className="w-full max-w-2xl bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-          목록 조회
+          {title}
+        </h2>
+        <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+          {description}
         </h2>
 
         <div className="flex items-center gap-2 flex-wrap">

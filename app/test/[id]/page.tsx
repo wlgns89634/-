@@ -5,13 +5,18 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import DetailView from "@/components/Detail/Detail";
 import { userDetailFields } from "@/fields/detailField";
 import { userFieldConfig } from "@/fields/formField";
-import { getInstitutionDetail, deleteInstitution } from "@/apis/test/apiTest";
+import {
+  getInstitutionDetail,
+  updateInstitution,
+  deleteInstitution,
+} from "@/apis/test/apiTest";
 import { useModalStore } from "@/store/Modal";
-import FieldForm from "@/components/FieldForm/FieldForm";
 import { useLoadingStore } from "@/store/Loading";
+import FieldForm from "@/components/FieldForm/FieldForm";
+import { UserPost } from "@/types/test/list";
 
 export default function UserDetailPage() {
-  const { id } = useParams<{ id: string }>(); // 리스트페이지 [id] 값 가져옴
+  const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
   const open = useModalStore((state) => state.open);
@@ -25,12 +30,43 @@ export default function UserDetailPage() {
     enabled: !!id,
   });
 
-  //  삭제 mutation
-  const deleteMutation = useMutation({
-    mutationFn: deleteInstitution,
+  // 수정 mutation
+  const updateMutation = useMutation({
+    mutationFn: (formData: UserPost) => updateInstitution(id, formData),
+    onMutate: () => {
+      startLoading("정보를 수정하는 중입니다...");
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-      router.push("/users"); // 삭제 성공하면 목록으로 이동
+      // 상세 데이터 + 목록 둘 다 최신화
+      queryClient.invalidateQueries({ queryKey: ["users", "detail", id] });
+      queryClient.invalidateQueries({ queryKey: ["test"] });
+      open({
+        type: "alert",
+        title: "완료",
+        description: "수정이 완료되었습니다.",
+      });
+    },
+    onError: () => {
+      open({
+        type: "alert",
+        title: "오류",
+        description: "수정에 실패했습니다.",
+      });
+    },
+    onSettled: () => {
+      endLoading();
+    },
+  });
+
+  // ✅ 삭제 mutation
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteInstitution(id),
+    onMutate: () => {
+      startLoading("삭제하는 중입니다...");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["test"] });
+      router.push("/test"); // 삭제 성공하면 목록으로
     },
     onError: () => {
       open({
@@ -39,27 +75,28 @@ export default function UserDetailPage() {
         description: "삭제에 실패했습니다.",
       });
     },
+    onSettled: () => {
+      endLoading();
+    },
   });
 
-  // 수정 버튼 클릭 핸들러 (수정 폼 모달 열기)
-  const handleEdit = (rowData: typeof data) => {
-    if (!rowData) return;
+  // ✅ 수정 버튼 → 폼 모달 → 검증 통과 → confirm → 실제 API 호출까지 완결
+  const handleEdit = () => {
+    if (!data) return;
     open({
       type: "content",
       title: "회원 수정",
       content: (
         <FieldForm
           fields={userFieldConfig}
-          defaultValues={rowData}
+          defaultValues={data}
           onSubmit={async (formData) => {
             open({
               type: "confirm",
               title: "수정하시겠습니까?",
+              description: "변경사항을 저장합니다.",
               onConfirm: async () => {
-                // updateInstitution 같은 실제 수정 API 호출
-                queryClient.invalidateQueries({
-                  queryKey: ["users", "detail", id],
-                });
+                await updateMutation.mutateAsync(formData as UserPost); // ✅ 실제 API 호출 연결
               },
             });
           }}
@@ -68,27 +105,36 @@ export default function UserDetailPage() {
     });
   };
 
-  // 삭제 버튼 클릭 핸들러 (confirm 모달)
-  const handleDelete = (targetId: string) => {
+  const handleDelete = () => {
     open({
       type: "confirm",
       title: "정말 삭제하시겠습니까?",
       description: "삭제하면 되돌릴 수 없습니다.",
       onConfirm: async () => {
-        try {
-          startLoading("기관을 삭제하는 중입니다..."); // 로딩 켜기
-          await deleteMutation.mutateAsync(targetId);
-        } catch (error) {
-          console.error(error);
-        } finally {
-          endLoading(); // 로딩 끄기
-        }
+        await deleteMutation.mutateAsync();
       },
     });
   };
 
-  if (isLoading) return <p>불러오는 중...</p>;
-  if (!data) return <p>데이터를 찾을 수 없습니다.</p>;
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
+        <p className="text-sm text-muted-foreground animate-pulse">
+          데이터를 불러오는 중입니다...
+        </p>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
+        <p className="text-sm text-destructive font-medium">
+          존재하지 않거나 삭제된 회원입니다.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <DetailView
@@ -96,8 +142,8 @@ export default function UserDetailPage() {
       data={data}
       fields={userDetailFields}
       onBackClick={() => router.back()}
-      onEditClick={() => handleEdit(data)}
-      onDeleteClick={() => handleDelete(String(data.id))}
+      onEditClick={handleEdit}
+      onDeleteClick={handleDelete}
     />
   );
 }

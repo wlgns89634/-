@@ -14,7 +14,6 @@ export default function CreatePage() {
   const queryClient = useQueryClient();
   const startLoading = useLoadingStore((state) => state.startLoading);
   const endLoading = useLoadingStore((state) => state.endLoading);
-  const [value, setValue] = useState<UserPost>();
 
   const { mutateAsync } = useMutation({
     mutationFn: createInstitution,

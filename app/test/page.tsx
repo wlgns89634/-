@@ -128,7 +128,7 @@ export default function ListPage() {
   );
 
   const listDetail = (id: string | number) => {
-    router.push(`/institutions/${id}`);
+    router.push(`/test/${id}`);
   };
 
   // ── Create: 등록 모달 (신규 추가) ──

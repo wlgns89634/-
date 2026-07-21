@@ -14,6 +14,7 @@ import { UserRowData } from "@/types/test/list";
 import { userFieldConfig } from "@/fields/formField";
 import Loading from "@/components/Loading/Loading";
 import { Suspense } from "react";
+import Breadcrumb from "@/components/BreadCrumb/BreadCrumb";
 
 // 실제 화면에 뿌려줄 순수 가데이터 배열
 const LOCAL_MOCK_USERS: UserRowData[] = [
@@ -170,7 +171,7 @@ export default function ListPage() {
         <button onClick={handleOpenAlert}>알림창 열기</button>
         <button onClick={handleAddClick}>+ 회원 등록</button>
       </div>
-
+      <Breadcrumb />
       <Loading />
       <Suspense fallback={null}>
         <DataTable

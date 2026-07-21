@@ -29,7 +29,6 @@ import {
 } from "@/components/ui/select";
 import { TableFilterConfig } from "@/types/form";
 import Skeleton from "@/components/Skelton/Skeleton";
-import { useSuspenseQuery } from "@tanstack/react-query";
 
 export interface FetchTableDataParams {
   page: number;

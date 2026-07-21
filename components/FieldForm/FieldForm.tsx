@@ -1,13 +1,15 @@
-// components/dynamic-form.tsx
 "use client";
 
 import { useState, useEffect } from "react";
-import { useForm, Controller, Control } from "react-hook-form";
+import { useForm, Controller, Control, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { format } from "date-fns";
+import { ko } from "date-fns/locale";
 import { FormFieldConfig } from "@/types/form";
 import { buildSchema } from "@/utils/build_schema";
 import { useFormValidationAlert } from "@/hooks/validation";
-import { X, Paperclip, FileText } from "lucide-react";
+import { X, Paperclip, FileText, CalendarIcon } from "lucide-react";
+import { Matcher } from "react-day-picker";
 
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,6 +24,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 
 interface FieldFormProps {
   type?: "modal" | "page";
@@ -29,7 +38,7 @@ interface FieldFormProps {
   onSubmit: (data: Record<string, unknown>) => Promise<void>;
   submitLabel?: string;
   className?: string;
-  onChange?: (data: Record<string, unknown>) => void; // ✅ 함수 타입으로 수정
+  onChange?: (data: Record<string, unknown>) => void;
   defaultValues?: Record<string, unknown>;
   validType?: "inline" | "modal";
 }
@@ -39,7 +48,7 @@ export default function Form({
   fields,
   onSubmit,
   submitLabel = "제출",
-  onChange, // ✅ destructuring에 추가
+  onChange,
   defaultValues,
   validType = "inline",
 }: FieldFormProps) {
@@ -307,6 +316,9 @@ const renderField = (
         </div>
       );
 
+    case "date":
+      return <DateFieldController field={field} control={control} />;
+
     case "file":
       return (
         <Controller
@@ -386,6 +398,99 @@ const renderField = (
   }
 };
 
+function DateFieldController({
+  field,
+  control,
+}: {
+  field: FormFieldConfig;
+  control: Control;
+}) {
+  const [open, setOpen] = useState(false);
+
+  // 다른 필드의 값을 감시
+  const minDateFieldVal = useWatch({
+    control,
+    name: (field.minDateField ?? "__unused_min__") as string,
+  });
+
+  const maxDateFieldVal = useWatch({
+    control,
+    name: (field.maxDateField ?? "__unused_max__") as string,
+  });
+
+  // react-day-picker가 요구하는 규칙에 맞게 disabled 배열/객체 생성
+  const getDisabledRules = () => {
+    const rules: Matcher[] = [];
+
+    // 1. 고정 제한 적용
+    if (field.minDate instanceof Date) {
+      rules.push({ before: field.minDate });
+    }
+    if (field.maxDate instanceof Date) {
+      rules.push({ after: field.maxDate });
+    }
+
+    // 종강일 입장에서 개강일(minDateFieldVal) 이전 날짜들을 완전히 차단
+    if (field.minDateField && minDateFieldVal) {
+      const minDate = new Date(minDateFieldVal as string);
+      rules.push({ before: minDate }); // 개강일 당일 포함 '이전' 날짜들을 전부 잠금
+    }
+
+    if (field.maxDateField && maxDateFieldVal) {
+      const maxDate = new Date(maxDateFieldVal as string);
+      rules.push({ after: maxDate }); // 종료일 '이후' 날짜들을 전부 잠금
+    }
+
+    return rules.length > 0 ? rules : undefined;
+  };
+
+  return (
+    <Controller
+      name={field.name}
+      control={control}
+      render={({ field: controllerField }) => {
+        const selectedDate = controllerField.value
+          ? new Date(controllerField.value as string)
+          : undefined;
+
+        return (
+          <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !selectedDate && "text-muted-foreground",
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {selectedDate ? (
+                  format(selectedDate, "yyyy년 MM월 dd일", { locale: ko })
+                ) : (
+                  <span>{field.placeholder ?? "날짜를 선택하세요"}</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => {
+                  controllerField.onChange(
+                    date ? format(date, "yyyy-MM-dd") : "",
+                  );
+                  setOpen(false);
+                }}
+                disabled={getDisabledRules()} // 함수 대신 { before: 날짜 } 스펙 객체 배열로 전달
+              />
+            </PopoverContent>
+          </Popover>
+        );
+      }}
+    />
+  );
+}
 const FilePreviewItem = ({
   file,
   onRemove,

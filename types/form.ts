@@ -10,6 +10,7 @@ export type FieldType =
   | "checkboxGroup"
   | "radio"
   | "file"
+  | "date"
   | "group";
 
 export type SelectOption = {
@@ -31,6 +32,10 @@ export type FormFieldConfig = {
   accept?: string; // 파일 타입 제한 (예: "image/*", ".pdf,.docx")
   maxFileSizeMb?: number;
   multiple?: boolean;
+  minDate?: Date;
+  maxDate?: Date;
+  minDateField?: string;
+  maxDateField?: string;
 };
 
 // 테이블 필터용

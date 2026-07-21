@@ -79,6 +79,22 @@ export const userFieldConfig: FormFieldConfig[] = [
     ],
   },
   {
+    name: "startDate",
+    type: "date",
+    label: "개강일",
+    placeholder: "날짜를 입력하세요",
+    required: true,
+    maxDateField: "endDate",
+  },
+  {
+    name: "endDate",
+    type: "date",
+    label: "종강일",
+    placeholder: "날짜를 입력하세요",
+    required: true,
+    minDateField: "startDate",
+  },
+  {
     name: "agree",
     type: "checkbox",
     label: "약관동의",

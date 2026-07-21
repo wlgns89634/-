@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { DetailFieldConfig } from "@/types/detail";
+import Breadcrumb from "../BreadCrumb/BreadCrumb";
 
 interface DetailViewProps {
   title: string; // 헤더에 보여줄 제목 (id 등 특정 필드에 종속 안 됨)
@@ -25,6 +26,7 @@ export default function DetailView({
   return (
     <div className="w-full max-w-2xl bg-white dark:bg-zinc-900 p-8 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 space-y-6">
       {/* 헤더 영역 */}
+      <Breadcrumb />
       <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-4">
         <div>
           {description && (

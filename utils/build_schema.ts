@@ -140,6 +140,15 @@ function buildFieldSchema(field: FormFieldConfig): ZodTypeAny {
         });
     }
 
+    case "date": {
+      let schema = z.string();
+      if (field.required) {
+        schema = schema.min(1, `${field.label}을 선택해주세요`);
+        return schema;
+      }
+      return schema.optional();
+    }
+
     case "text":
     case "password":
     case "textarea": {
